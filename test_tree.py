@@ -4,42 +4,112 @@ from anytree.importer import JsonImporter
 from anytree.exporter import DictExporter
 
 
-class ModuleOne:
+class ModuleMain:
     def __str__(self):
-        return 'I am module one'
+        return 'I am module main'
 
-    def test(self):
-        return str(self)
+    def test(self, parent):
+        return str(self) + ', my parent ' + str(parent)
 
 
-class ModuleTwo:
+class ModuleOne(ModuleMain):
     def __str__(self):
-        return 'I am module two'
+        return 'I am module 1'
 
-    def test(self):
-        return str(self)
+
+class ModuleTwo(ModuleMain):
+    def __str__(self):
+        return 'I am module 2'
+
+
+class ModuleChildrenLeftOneOne(ModuleMain):
+    def __str__(self):
+        return 'I am module 11'
+
+
+class ModuleChildrenLeftOneTwo(ModuleMain):
+    def __str__(self):
+        return 'I am module 12'
+
+
+class ModuleChildrenLeftTwoOne(ModuleMain):
+    def __str__(self):
+        return 'I am module 21'
+
+
+class ModuleChildrenLeftTwoTwo(ModuleMain):
+    def __str__(self):
+        return 'I am module 22'
+
+
+class ModuleChildrenRightOneOne(ModuleMain):
+    def __str__(self):
+        return 'I am module 11'
+
+
+class ModuleChildrenRightOneTwo(ModuleMain):
+    def __str__(self):
+        return 'I am module 12'
+
+
+class ModuleChildrenLeftOneTwoOne(ModuleMain):
+    def __str__(self):
+        return 'I am module 221'
+
+
+class ModuleChildrenLeftTwoOneTwo(ModuleMain):
+    def __str__(self):
+        return 'I am module 112'
+
+
+class ModuleChildrenLeftTwoTwoThree(ModuleMain):
+    def __str__(self):
+        return 'I am module 123'
 
 
 importer = JsonImporter()
 data = '''
  {
-   "a": "ModuleOne",
-   "b": "ModuleTwo",
+   "a": "ModuleMain",
    "children": [
      {
-       "a": "sub0",
+       "a": "ModuleOne",
        "children": [
          {
-           "a": "sub0A",
-           "b": "foo"
+           "a": "ModuleChildrenLeftOneOne",
+           "children": [
+             {
+                "a": "ModuleChildrenLeftOneTwoOne"
+             },
+             {
+                "a": "ModuleChildrenLeftTwoOneTwo"
+             },
+             {
+                "a": "ModuleChildrenLeftTwoTwoThree"
+             }
+           ]
          },
          {
-           "a": "sub0B"
+            "a": "ModuleChildrenLeftOneTwo"
+         },
+         {
+            "a": "ModuleChildrenLeftTwoOne"
+         },
+         {
+            "a": "ModuleChildrenLeftTwoTwo"
          }
        ]
      },
      {
-       "a": "sub1"
+       "a": "ModuleTwo",
+       "children": [
+         {
+           "a": "ModuleChildrenRightOneOne"
+         },
+         {
+            "a": "ModuleChildrenRightOneTwo"
+         }
+       ]
      }
    ]
  }'''
@@ -47,11 +117,22 @@ data = '''
 this_mod = sys.modules[__name__]
 
 root = importer.import_(data)
+
 exporter = DictExporter()
 
-for node in LevelOrderGroupIter(root, maxlevel=1):
-    nodes_dict = exporter.export(node[0])
-    del nodes_dict['children']
-    for value in nodes_dict.values():
+
+def call_module(node_dict, node):
+    for value in node_dict.values():
         module_obj = getattr(this_mod, value)()
-        print(module_obj.test())
+        if node.parent:
+            print(exporter.export(node.parent))
+        # print(module_obj.test(''))
+
+
+for nodes_list in LevelOrderGroupIter(root):
+    print('level: {}'.format(nodes_list[0].depth))
+    for node in nodes_list:
+        node_dict = exporter.export(node)
+        if 'children' in node_dict:
+            del node_dict['children']
+        call_module(node_dict, node)
