@@ -1,4 +1,6 @@
 import sys
+import time
+from multiprocessing import Pool
 from anytree import Node, RenderTree, LevelOrderGroupIter
 from anytree.importer import JsonImporter
 from anytree.exporter import DictExporter
@@ -29,6 +31,7 @@ class ModuleChildrenLeftOneOne(ModuleMain):
 
 class ModuleChildrenLeftOneTwo(ModuleMain):
     def __str__(self):
+        time.sleep(1)
         return 'I am module 12'
 
 
@@ -54,17 +57,18 @@ class ModuleChildrenRightOneTwo(ModuleMain):
 
 class ModuleChildrenLeftOneTwoOne(ModuleMain):
     def __str__(self):
-        return 'I am module 221'
+        time.sleep(1)
+        return 'I am module 121'
 
 
 class ModuleChildrenLeftTwoOneTwo(ModuleMain):
     def __str__(self):
-        return 'I am module 112'
+        return 'I am module 212'
 
 
 class ModuleChildrenLeftTwoTwoThree(ModuleMain):
     def __str__(self):
-        return 'I am module 123'
+        return 'I am module 223'
 
 
 importer = JsonImporter()
@@ -124,15 +128,29 @@ exporter = DictExporter()
 def call_module(node_dict, node):
     for value in node_dict.values():
         module_obj = getattr(this_mod, value)()
-        if node.parent:
-            print(exporter.export(node.parent))
-        # print(module_obj.test(''))
+        print(module_obj.test(node.parent))
 
 
-for nodes_list in LevelOrderGroupIter(root):
+def run_manual(nodes_list):
     print('level: {}'.format(nodes_list[0].depth))
     for node in nodes_list:
         node_dict = exporter.export(node)
         if 'children' in node_dict:
             del node_dict['children']
         call_module(node_dict, node)
+
+
+def run_async(nodes_list):
+    print('level: {}'.format(nodes_list[0].depth))
+    pool = Pool()
+    for node in nodes_list:
+        node_dict = exporter.export(node)
+        if 'children' in node_dict:
+            del node_dict['children']
+        pool.apply_async(call_module, args=(node_dict, node,))
+    pool.close()
+    pool.join()
+
+
+for nodes_list in LevelOrderGroupIter(root):
+    run_async(nodes_list)
