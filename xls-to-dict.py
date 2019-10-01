@@ -24,9 +24,9 @@ class XlsToDict:
                 nick_name: self._user_dict
             })
 
-    def _prepare_interests_list(self, df_link, index):
-        df_t = df_link.drop(columns=['Post Link', 'User Handle']).T
-        self._interest_list = df_t[index].dropna().tolist()
+    def _prepare_interests_list(self, df_link):
+        df_t = df_link.drop(['Post Link', 'User Handle'])
+        self._interest_list = df_t.dropna().tolist()
 
     def _set_interests_to_dict(self):
         for interest in self._interest_list:
@@ -37,13 +37,10 @@ class XlsToDict:
         self._user_dict_structure()
         df['User Handle'] = df['User Handle'].fillna(method='ffill')
         df = df[df['User Handle'] == nick_name]
-        index = df.index[0]
-        for link in df['Post Link']:
-            df_link = df[df['Post Link'] == link]
-            self._prepare_interests_list(df_link, index)
+        for _, row in df.iterrows():
+            self._prepare_interests_list(row)
             self._set_interests_to_dict()
-            index += 1
-            self._user_dict['images'].update({link: self._interest_list})
+            self._user_dict['images'].update({row['Post Link']: self._interest_list})
 
     def _user_dict_structure(self):
         self._user_dict = {
